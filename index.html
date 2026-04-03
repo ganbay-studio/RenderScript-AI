@@ -653,8 +653,11 @@
             const jsonString = JSON.stringify(prompt, null, 2);
             document.getElementById('jsonOutput').value = jsonString;
             
-            const promptCount = parseInt(document.getElementById('promptCount').textContent) || 0;
-            document.getElementById('promptCount').textContent = promptCount + 1;
+            // Update and save prompt count to localStorage
+            let promptCount = parseInt(localStorage.getItem('renderScript_promptCount')) || 0;
+            promptCount++;
+            localStorage.setItem('renderScript_promptCount', promptCount);
+            document.getElementById('promptCount').textContent = promptCount;
             document.getElementById('charactersCount').textContent = jsonString.length;
             document.getElementById('wordsCount').textContent = jsonString.split(/\s+/).filter(word => word.length > 0).length;
             document.getElementById('lastGenerated').textContent = new Date().toLocaleTimeString();
@@ -702,7 +705,10 @@
             document.getElementById('generateJson').addEventListener('click', generateJSON);
             document.getElementById('copyJson').addEventListener('click', copyToClipboard);
             document.getElementById('downloadJson').addEventListener('click', downloadJSON);
-            document.getElementById('promptCount').textContent = '0';
+
+            // Load saved prompt count from localStorage
+            const savedCount = parseInt(localStorage.getItem('renderScript_promptCount')) || 0;
+            document.getElementById('promptCount').textContent = savedCount;
             document.getElementById('charactersCount').textContent = '0';
             document.getElementById('wordsCount').textContent = '0';
             document.getElementById('lastGenerated').textContent = '-';
