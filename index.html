@@ -660,7 +660,9 @@
             document.getElementById('promptCount').textContent = promptCount;
             document.getElementById('charactersCount').textContent = jsonString.length;
             document.getElementById('wordsCount').textContent = jsonString.split(/\s+/).filter(word => word.length > 0).length;
-            document.getElementById('lastGenerated').textContent = new Date().toLocaleTimeString();
+            const lastGen = new Date().toLocaleTimeString();
+            localStorage.setItem('renderScript_lastGenerated', lastGen);
+            document.getElementById('lastGenerated').textContent = lastGen;
             
             // Google Analytics - Track Generate Prompt click
             if (typeof gtag === 'function') {
@@ -706,12 +708,13 @@
             document.getElementById('copyJson').addEventListener('click', copyToClipboard);
             document.getElementById('downloadJson').addEventListener('click', downloadJSON);
 
-            // Load saved prompt count from localStorage
+            // Load saved data from localStorage
             const savedCount = parseInt(localStorage.getItem('renderScript_promptCount')) || 0;
+            const savedLastGen = localStorage.getItem('renderScript_lastGenerated') || '-';
             document.getElementById('promptCount').textContent = savedCount;
+            document.getElementById('lastGenerated').textContent = savedLastGen;
             document.getElementById('charactersCount').textContent = '0';
             document.getElementById('wordsCount').textContent = '0';
-            document.getElementById('lastGenerated').textContent = '-';
         });
     </script>
 </body>
