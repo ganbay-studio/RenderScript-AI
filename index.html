@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RenderScript AI - Enhanced BETA</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1; --primary-dark: #4f46e5; --primary-light: #818cf8;
+            --secondary: #0ea5e9; --accent: #f59e0b; --success: #10b981; --danger: #ef4444;
+            --background: #0f172a; --surface: #1e293b; --surface-light: #334155;
+            --text: #f1f5f9; --text-secondary: #94a3b8; --border: #475569;
+            --shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); --shadow-sm: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+            --gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #0ea5e9 100%);
+            --gradient-text: linear-gradient(135deg, #6366f1, #0ea5e9);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+        body { background: var(--background); color: var(--text); line-height: 1.6; min-height: 100vh; }
+        .bg-pattern {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: radial-gradient(circle at 20% 50%, rgba(99, 102, 241, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 80%, rgba(14, 165, 233, 0.1) 0%, transparent 50%),
+                        radial-gradient(circle at 40% 20%, rgba(139, 92, 246, 0.08) 0%, transparent 50%);
+            pointer-events: none; z-index: -1;
+        }
+        .container { max-width: 1440px; margin: 0 auto; padding: 18px; }
+        header { text-align: center; padding: 40px 20px; margin-bottom: 30px; position: relative; }
+        .logo-section { display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 15px; }
+        .logo-icon {
+            width: 60px; height: 60px; background: var(--gradient); border-radius: 16px;
+            display: flex; align-items: center; justify-content: center; font-size: 28px;
+            box-shadow: var(--shadow-sm); animation: pulse 3s ease-in-out infinite;
+        }
+        @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+        header h1 {
+            font-size: 2.5rem; font-weight: 700; background: var(--gradient-text);
+            -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 8px;
+        }
+        header p { color: var(--text-secondary); font-size: 1.1rem; max-width: 600px; margin: 0 auto; }
+        .app-wrapper { display: grid; grid-template-columns: 378px 1000px; gap: 25px; align-items: start; justify-content: center; margin: 0 auto; }
+        @media (max-width: 1024px) { .app-wrapper { grid-template-columns: 1fr; } }
+        .card {
+            background: var(--surface); border-radius: 20px; border: 1px solid var(--border);
+            overflow: hidden; box-shadow: var(--shadow-sm); transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+        .card-header { padding: 20px 25px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+        .card-header h3 { display: flex; align-items: center; gap: 12px; font-size: 1.1rem; font-weight: 600; }
+        .card-header h3 i { color: var(--primary-light); font-size: 1.1rem; }
+        .card-body { padding: 25px; }
+        .config-card .card-body { padding: 15px; }
+        .config-card { max-height: 750px !important; height: 750px !important; overflow-y: auto; }
+
+        /* JSON Card: fixed height, never grows */
+        .json-card {
+            display: flex !important;
+            flex-direction: column !important;
+            height: 750px !important; /* Fixed px height, not vh */
+            max-height: 750px !important;
+            overflow: hidden !important;
+        }
+        .json-card .card-body {
+            padding: 0;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+        }
+        .json-card .output-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 0;
+        }
+        .json-card .output-header {
+            flex-shrink: 0;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface-light);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        /* Scrollable textarea */
+        .json-card #jsonOutput {
+            flex: 1;
+            overflow-y: auto;
+            width: 100%;
+            background: var(--background);
+            color: var(--text);
+            border: none;
+            padding: 16px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            resize: none;
+            display: block;
+            min-height: 0;
+        }
+        .json-card .btn-group {
+            flex-shrink: 0;
+            padding: 20px 25px;
+            display: flex;
+            gap: 12px;
+            border-top: 1px solid var(--border);
+            background: var(--surface);
+        }
+
+        .accordion { margin-bottom: 10px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); }
+        .accordion-header {
+            padding: 12px 16px; background: var(--surface-light); cursor: pointer;
+            display: flex; align-items: center; justify-content: space-between; transition: background 0.3s;
+        }
+        .accordion-header:hover { background: var(--border); }
+        .accordion-header h4 { display: flex; align-items: center; gap: 10px; font-size: 0.9rem; font-weight: 500; }
+        .accordion-header h4 i { color: var(--primary-light); }
+        .accordion-header .chevron { transition: transform 0.3s; color: var(--text-secondary); }
+        .accordion.active .accordion-header .chevron { transform: rotate(180deg); }
+        .accordion-content { max-height: 0; overflow: hidden; transition: max-height 0.4s ease; }
+        .accordion.active .accordion-content { max-height: 2000px; }
+        .accordion-body { padding: 15px; }
+        .form-group { margin-bottom: 14px; }
+        .form-group:last-child { margin-bottom: 0; }
+        label { display: block; margin-bottom: 6px; font-weight: 500; color: var(--text-secondary); font-size: 0.85rem; }
+        select, input[type="text"], textarea {
+            width: 100%; padding: 10px 14px; border: 2px solid var(--border); border-radius: 10px;
+            font-size: 0.9rem; background: var(--surface); color: var(--text); transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        select:focus, input[type="text"]:focus, textarea:focus {
+            outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+        }
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 12px center; background-size: 18px; padding-right: 40px;
+        }
+        textarea { resize: vertical; min-height: 70px; }
+        .btn {
+            padding: 12px 24px; border: none; border-radius: 10px; cursor: pointer; font-weight: 500;
+            font-size: 0.95rem; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.3s;
+        }
+        .btn-primary { background: var(--gradient); color: white; flex: 1; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(99, 102, 241, 0.3); }
+        .btn-secondary { background: var(--surface-light); color: var(--text); }
+        .btn-secondary:hover { background: var(--border); }
+        .btn-success { background: var(--success); color: white; }
+        .btn-success:hover { background: #059669; transform: translateY(-2px); }
+        .btn-info { background: var(--secondary); color: white; }
+        .btn-info:hover { background: #0284c7; transform: translateY(-2px); }
+        #jsonOutput::placeholder { color: var(--text-secondary); }
+        .toast {
+            position: fixed; bottom: 30px; right: 30px; padding: 16px 24px; background: var(--success);
+            color: white; border-radius: 12px; box-shadow: var(--shadow); display: none;
+            align-items: center; gap: 10px; z-index: 1000; animation: slideIn 0.3s ease;
+        }
+        @keyframes slideIn { from { transform: translateX(100px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        .toast.show { display: flex; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: var(--surface); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
+        .helper-text { font-size: 0.75rem; color: var(--text-secondary); margin-top: 4px; display: block; }
+        .sub-section { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+        .sub-section h5 { color: var(--primary-light); font-size: 0.85rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .sub-section h5 i { font-size: 0.8rem; }
+        .stats-bar { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; }
+        .stat-card { flex: 1; min-width: 120px; padding: 15px; background: var(--surface-light); border-radius: 12px; text-align: center; border: 1px solid var(--border); }
+        .stat-card .value { font-size: 1.5rem; font-weight: 700; color: var(--primary-light); margin-bottom: 5px; }
+        .stat-card .label { font-size: 0.85rem; color: var(--text-secondary); }
+        .notification { position: fixed; top: 20px; right: 20px; padding: 15px 20px; background: var(--surface-light); border-left: 4px solid var(--primary); border-radius: 8px; box-shadow: var(--shadow-sm); display: none; z-index: 1001; }
+        .notification.show { display: block; }
+        .notification.success { border-left-color: var(--success); }
+        .notification.error { border-left-color: var(--danger); }
+        .notification.warning { border-left-color: var(--accent); }
+        .notification .close-btn { position: absolute; top: 10px; right: 10px; cursor: pointer; color: var(--text-secondary); }
+        .notification .close-btn:hover { color: var(--text); }
+        .footer { text-align: center; padding: 20px; color: var(--text-secondary); font-size: 0.8rem; opacity: 0.8; margin-top: 30px; }
+    </style>
+</head>
+<body>
+    <div class="bg-pattern"></div>
+    <div class="container">
+        <header>
+            <div class="logo-section">
+                <div class="logo-icon"><i class="fas fa-magic"></i></div>
+                <div style="display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:10px;">
+                    <div style="display:flex;align-items:center;justify-content:flex-start;flex-wrap:wrap;gap:10px;"><h1 style="margin:0;">RenderScript AI</h1><span style="display:inline-block;background:var(--accent);color:white;font-size:0.8rem;font-weight:700;padding:4px 14px;border-radius:12px;position:relative;z-index:10;">BETA</span></div>
+                    <p style="color:var(--text-secondary);font-size:0.95rem;margin:0;">Archviz Prompt Generator for NanoBanana Pro</p>
+                </div>
+            </div>
+        </header>
+        
+        <div class="stats-bar">
+            <div class="stat-card"><div class="value" id="promptCount">0</div><div class="label">Prompts Generated</div></div>
+            <div class="stat-card"><div class="value" id="charactersCount">0</div><div class="label">Characters</div></div>
+            <div class="stat-card"><div class="value" id="wordsCount">0</div><div class="label">Words</div></div>
+            <div class="stat-card"><div class="value" id="lastGenerated">-</div><div class="label">Last Generated</div></div>
+        </div>
+
+        <div class="app-wrapper">
+            <!-- Left Panel: Configuration with Vertical Accordion -->
+            <div class="card config-card">
+                <div class="card-header">
+                    <h3><i class="fas fa-sliders-h"></i> Configuration</h3>
+                    <button class="btn btn-secondary" onclick="resetForm()" title="Reset Form"><i class="fas fa-redo"></i></button>
+                </div>
+                <div class="card-body">
+                    <div class="accordion active">
+                        <div class="accordion-header" onclick="toggleAccordion(this)"><h4><i class="fas fa-home"></i> Scene & Environment</h4><i class="fas fa-chevron-down chevron"></i></div>
+                        <div class="accordion-content"><div class="accordion-body">
+                            <div class="form-group"><label>Scene Type</label><input type="text" id="sceneType" list="sceneTypeOpts" value="modern tropical residential house exterior" placeholder="Select or type..."><datalist id="sceneTypeOpts"><option value="modern tropical residential house exterior"><option value="modern tropical commercial building exterior"><option value="modern minimalist office building exterior"><option value="industrial warehouse exterior"><option value="contemporary landscape architecture"></datalist></div>
+                            <div class="form-group"><label>Building Function</label><input type="text" id="functionSelect" list="functionOpts" value="private urban house" placeholder="Select or type..."><datalist id="functionOpts"><option value="private urban house"><option value="commercial retail"><option value="education institution"><option value="healthcare facility"><option value="office space"></datalist></div>
+                            <div class="form-group"><label>Time of Day</label><input type="text" id="timeOfDay" list="timeOpts" value="late morning to noon" placeholder="Select or type..."><datalist id="timeOpts"><option value="late morning to noon"><option value="afternoon"><option value="golden hour sunset"><option value="dawn"><option value="night"></datalist></div>
+                            <div class="form-group"><label>Weather</label><input type="text" id="weather" list="weatherOpts" value="bright tropical clear sky with light clouds" placeholder="Select or type..."><datalist id="weatherOpts"><option value="bright tropical clear sky with light clouds"><option value="overcast tropical sky"><option value="light rain tropical"><option value="thick tropical clouds"><option value="monsoon rain"></datalist></div>
+                        </div></div>
+                    </div>
+
+                    <div class="accordion">
+                        <div class="accordion-header" onclick="toggleAccordion(this)"><h4><i class="fas fa-lightbulb"></i> Lighting</h4><i class="fas fa-chevron-down chevron"></i></div>
+                        <div class="accordion-content"><div class="accordion-body">
+                            <div class="form-group"><label>Lighting Type</label><input type="text" id="lightingType" list="ltOpts" value="natural daylight" placeholder="Select or type..."><datalist id="ltOpts"><option value="natural daylight"><option value="mixed daylight and artificial"><option value="interior artificial lighting"><option value="night lighting"><option value="special lighting effect"></datalist></div>
+                            <div class="form-group"><label>Light Source</label><input type="text" id="naturalLightSource" list="lsOpts" value="sunlight from sky" placeholder="Select or type..."><datalist id="lsOpts"><option value="sunlight from sky"><option value="sunlight from windows"><option value="sunlight from multiple directions"><option value="sunlight through glass"><option value="indirect sunlight"></datalist></div>
+                            <div class="form-group"><label>Light Intensity</label><input type="text" id="naturalLightIntensity" list="liOpts" value="bright tropical sunlight" placeholder="Select or type..."><datalist id="liOpts"><option value="bright tropical sunlight"><option value="moderate tropical sunlight"><option value="soft tropical sunlight"><option value="dappled sunlight"><option value="diffused overcast"></datalist></div>
+                            <div class="form-group"><label>Light Direction</label><input type="text" id="naturalLightDirection" list="ldOpts" value="angled directional light depending on camera view (consistent across all views)" placeholder="Select or type..."><datalist id="ldOpts"><option value="angled directional light depending on camera view (consistent across all views)"><option value="top-down light"><option value="frontal light"><option value="side light"><option value="backlight"></datalist></div>
+                            <div class="form-group"><label>Color Temperature</label><input type="text" id="colorTemperature" list="ctOpts" value="5500K - 6000K neutral daylight" placeholder="Select or type..."><datalist id="ctOpts"><option value="5500K - 6000K neutral daylight"><option value="4500K - 5000K cool daylight"><option value="3500K - 4000K warm daylight"><option value="2500K - 3000K soft white"><option value="3000K - 4000K neutral white"></datalist></div>
+                            <div class="form-group"><label>Light Effect</label><input type="text" id="lightEffect" value="soft but defined shadows, realistic highlights, balanced exposure" placeholder="e.g., soft but defined shadows..."></div>
+                            <div class="sub-section"><h5><i class="fas fa-lamp"></i> Artificial Light</h5>
+                                <div class="form-group"><label>Artificial Light Type</label><input type="text" id="artificialLightType" list="altOpts" value="minimal or none (daytime condition)" placeholder="Select or type..."><datalist id="altOpts"><option value="minimal or none (daytime condition)"><option value="interior ambient lighting"><option value="accent lighting"><option value="task lighting"></datalist></div>
+                                <div class="form-group"><label>Color Temperature (Artificial)</label><input type="text" id="artificialLightTemp" list="actOpts" value="neutral" placeholder="Select or type..."><datalist id="actOpts"><option value="neutral"><option value="warm white"><option value="cool white"></datalist></div>
+                                <div class="form-group"><label>Intensity (Artificial)</label><input type="text" id="artificialLightIntensity" value="very subtle interior fill if visible" placeholder="very subtle interior fill..."></div>
+                            </div>
+                            <div class="sub-section"><h5><i class="fas fa-globe"></i> Global Illumination & Shadows</h5>
+                                <div class="form-group"><label>Global Illumination</label><input type="text" id="globalIllumination" value="enabled, realistic bounce light from ground and walls" placeholder="enabled, realistic bounce light..."></div>
+                                <div class="form-group"><label>Shadow Quality</label><input type="text" id="shadowQuality" list="sqOpts" value="soft tropical shadows, slightly diffused edges" placeholder="Select or type..."><datalist id="sqOpts"><option value="soft tropical shadows, slightly diffused edges"><option value="sharp defined shadows"><option value="soft diffused shadows"><option value="dramatic deep shadows"></datalist></div>
+                            </div>
+                        </div></div>
+                    </div>
+
+                    <div class="accordion">
+                        <div class="accordion-header" onclick="toggleAccordion(this)"><h4><i class="fas fa-tree"></i> Environment Outside</h4><i class="fas fa-chevron-down chevron"></i></div>
+                        <div class="accordion-content"><div class="accordion-body">
+                            <div class="form-group"><label>Environment Type</label><input type="text" id="environmentType" list="etOpts" value="indonesian suburban neighborhood" placeholder="Select or type..."><datalist id="etOpts"><option value="indonesian suburban neighborhood"><option value="malaysian tropical neighborhood"><option value="thai tropical neighborhood"><option value="bali tropical landscape"><option value="urban cityscape"></datalist></div>
+                            <div class="form-group"><label>Environment Details</label><textarea id="environmentDetails" placeholder="e.g., banana trees, coconut trees...">banana trees, coconut trees, dense tropical plants, small neighboring houses with simple architecture, uneven dirt or semi-paved road</textarea></div>
+                            <div class="form-group"><label>Atmosphere</label><textarea id="atmosphere" placeholder="e.g., warm humid tropical air...">warm humid tropical air, slightly hazy distance</textarea></div>
+                            <div class="form-group"><label>Visibility</label><input type="text" id="visibility" list="visOpts" value="clear foreground, slightly softened background" placeholder="Select or type..."><datalist id="visOpts"><option value="clear foreground, slightly softened background"><option value="all clear visibility"><option value="foggy distance"><option value="atmospheric haze"></datalist></div>
+                        </div></div>
+                    </div>
+
+                    <div class="accordion">
+                        <div class="accordion-header" onclick="toggleAccordion(this)"><h4><i class="fas fa-building"></i> Architecture</h4><i class="fas fa-chevron-down chevron"></i></div>
+                        <div class="accordion-content"><div class="accordion-body">
+                            <div class="form-group"><label>Architecture Style</label><input type="text" id="style" list="asOpts" value="modern minimalist box house" placeholder="Select or type..."><datalist id="asOpts"><option value="modern minimalist box house"><option value="contemporary tropical architecture"><option value="industrial loft style"><option value="mid-century modern"><option value="traditional Indonesian design"></datalist></div>
+                            <div class="form-group"><label>Number of Floors</label><input type="text" id="floors" list="flOpts" value="3" placeholder="Select or type..."><datalist id="flOpts"><option value="1"><option value="2"><option value="3"><option value="4"><option value="5"></datalist></div>
+                            <div class="form-group"><label>Color Palette</label><input type="text" id="colorPalette" value="grey cement, dark wood, black metal, glass transparency" placeholder="grey cement, dark wood, black metal..."><span class="helper-text">Separate colors with commas</span></div>
+                            <div class="sub-section"><h5><i class="fas fa-layer-group"></i> Materials</h5>
+                                <div class="form-group"><label>Main Wall Material</label><textarea id="materialsMainWall" rows="2" placeholder="rough cement plaster...">rough cement plaster, slightly imperfect</textarea></div>
+                                <div class="form-group"><label>Accent Material</label><input type="text" id="materialsAccent" value="dark wood panels and soffit" placeholder="dark wood panels..."></div>
+                                <div class="form-group"><label>Railing Material</label><input type="text" id="materialsRailing" value="vertical black metal bars, matte finish" placeholder="vertical black metal bars..."></div>
+                                <div class="form-group"><label>Gate Material</label><input type="text" id="materialsGate" value="dark grey metal vertical gate" placeholder="dark grey metal..."></div>
+                                <div class="form-group"><label>Glass Type</label><input type="text" id="materialsGlass" value="clear glass with mild reflection and slight interior visibility" placeholder="clear glass with mild reflection..."></div>
+                                <div class="form-group"><label>Roof Type</label><input type="text" id="materialsRoof" value="flat roof with pergola structure" placeholder="flat roof with pergola..."></div>
+                            </div>
+                            <div class="sub-section"><h5><i class="fas fa-th-large"></i> Architecture Details</h5>
+                                <div class="form-group"><label>Secondary Skin</label><input type="text" id="detailsSecondarySkin" value="vertical slatted facade elements" placeholder="vertical slatted facade..."></div>
+                                <div class="form-group"><label>Balcony Style</label><input type="text" id="detailsBalcony" value="minimal railing with clean geometry" placeholder="minimal railing..."></div>
+                                <div class="form-group"><label>Imperfections</label><input type="text" id="detailsImperfections" value="subtle dirt, weathering, edge wear for realism" placeholder="subtle dirt, weathering..."></div>
+                            </div>
+                        </div></div>
+                    </div>
+
+                    <div class="accordion">
+                        <div class="accordion-header" onclick="toggleAccordion(this)"><h4><i class="fas fa-users"></i> Human Elements</h4><i class="fas fa-chevron-down chevron"></i></div>
+                        <div class="accordion-content"><div class="accordion-body">
+                            <div class="form-group"><label>Include Humans</label><input type="text" id="humanPresence" list="hpOpts" value="true" placeholder="Select or type..."><datalist id="hpOpts"><option value="true"><option value="false"></datalist></div>
+                            <div class="form-group"><label>Density</label><input type="text" id="humanDensity" list="hdOpts" value="very low" placeholder="Select or type..."><datalist id="hdOpts"><option value="very low"><option value="low"><option value="medium"><option value="high"></datalist></div>
+                            <div class="form-group"><label>Activities (comma-separated)</label><input type="text" id="humanActivity" value="walking near house, standing casually, motorbike passing or parked" placeholder="walking near house..."></div>
+                            <div class="sub-section"><h5><i class="fas fa-user"></i> Human Appearance</h5>
+                                <div class="form-group"><label>Ethnicity</label><input type="text" id="humanEthnicity" value="Indonesian / Southeast Asian" placeholder="Indonesian / Southeast Asian"></div>
+                                <div class="form-group"><label>Age Range</label><input type="text" id="humanAge" value="young adults to middle-aged" placeholder="young adults to middle-aged"></div>
+                                <div class="form-group"><label>Clothing</label><input type="text" id="humanClothing" value="casual daily wear (t-shirt, jeans, light clothing)" placeholder="casual daily wear..."></div>
+                                <div class="form-group"><label>Expression</label><input type="text" id="humanExpression" value="neutral, natural" placeholder="neutral, natural"></div>
+                            </div>
+                        </div></div>
+                    </div>
+
+                    <div class="accordion">
+                        <div class="accordion-header" onclick="toggleAccordion(this)"><h4><i class="fas fa-camera"></i> Composition & Camera</h4><i class="fas fa-chevron-down chevron"></i></div>
+                        <div class="accordion-content"><div class="accordion-body">
+                            <div class="sub-section" style="margin-top:0;padding-top:0;border-top:none;"><h5><i class="fas fa-vector-square"></i> Composition</h5>
+                                <div class="form-group"><label>Camera Position</label><input type="text" id="cameraPosition" value="match exact original SketchUp camera position" placeholder="match exact original camera..."></div>
+                                <div class="form-group"><label>Perspective</label><input type="text" id="perspective" list="perOpts" value="two-point perspective (slight)" placeholder="Select or type..."><datalist id="perOpts"><option value="two-point perspective (slight)"><option value="one-point perspective"><option value="three-point perspective"><option value="isometric"></datalist></div>
+                                <div class="form-group"><label>Symmetry</label><input type="text" id="symmetry" value="depends on original view (front symmetrical, side asymmetrical)" placeholder="depends on original view..."></div>
+                                <div class="form-group"><label>Leading Lines</label><input type="text" id="leadingLines" value="building edges and fence lines" placeholder="building edges..."></div>
+                                <div class="form-group"><label>Depth</label><input type="text" id="depth" value="foreground (road), midground (house), background (vegetation and neighboring houses)" placeholder="foreground, midground..."></div>
+                            </div>
+                            <div class="sub-section"><h5><i class="fas fa-cog"></i> Camera Settings</h5>
+                                <div class="form-group"><label>Camera Type</label><input type="text" id="cameraType" list="camOpts" value="full-frame DSLR or mirrorless" placeholder="Select or type..."><datalist id="camOpts"><option value="full-frame DSLR or mirrorless"><option value="medium format camera"><option value="crop sensor DSLR"></datalist></div>
+                                <div class="form-group"><label>Lens</label><input type="text" id="lens" value="24mm - 35mm architectural lens" placeholder="24mm - 35mm..."></div>
+                                <div class="form-group"><label>Aperture</label><input type="text" id="aperture" list="apOpts" value="f/8 - f/11" placeholder="Select or type..."><datalist id="apOpts"><option value="f/8 - f/11"><option value="f/5.6"><option value="f/11 - f/16"><option value="f/2.8 - f/4"></datalist></div>
+                                <div class="form-group"><label>ISO</label><input type="text" id="iso" list="isoOpts" value="100" placeholder="Select or type..."><datalist id="isoOpts"><option value="100"><option value="200"><option value="400"></datalist></div>
+                                <div class="form-group"><label>Shutter Speed</label><input type="text" id="shutterSpeed" value="1/125 - 1/250" placeholder="1/125 - 1/250"></div>
+                                <div class="form-group"><label>White Balance</label><input type="text" id="whiteBalance" list="wbOpts" value="daylight neutral" placeholder="Select or type..."><datalist id="wbOpts"><option value="daylight neutral"><option value="daylight warm"><option value="cloudy"><option value="auto"></datalist></div>
+                                <div class="form-group"><label>Focus</label><input type="text" id="focus" list="focOpts" value="deep focus, all elements sharp" placeholder="Select or type..."><datalist id="focOpts"><option value="deep focus, all elements sharp"><option value="selective focus on subject"><option value="shallow depth of field"></datalist></div>
+                                <div class="form-group"><label>Dynamic Range</label><input type="text" id="dynamicRange" value="high, natural HDR balance" placeholder="high, natural HDR balance"></div>
+                            </div>
+                        </div></div>
+                    </div>
+
+                    <div class="accordion">
+                        <div class="accordion-header" onclick="toggleAccordion(this)"><h4><i class="fas fa-palette"></i> Render Style & Mood</h4><i class="fas fa-chevron-down chevron"></i></div>
+                        <div class="accordion-content"><div class="accordion-body">
+                            <div class="sub-section" style="margin-top:0;padding-top:0;border-top:none;"><h5><i class="fas fa-image"></i> Render Style</h5>
+                                <div class="form-group"><label>Quality</label><input type="text" id="renderQuality" list="rqOpts" value="ultra photorealistic" placeholder="Select or type..."><datalist id="rqOpts"><option value="ultra photorealistic"><option value="photorealistic"><option value="high quality realistic"><option value="stylized realistic"></datalist></div>
+                                <div class="form-group"><label>Sharpness</label><input type="text" id="renderSharpness" list="rsOpts" value="high" placeholder="Select or type..."><datalist id="rsOpts"><option value="high"><option value="medium"><option value="soft"></datalist></div>
+                                <div class="form-group"><label>Contrast</label><input type="text" id="renderContrast" list="rcOpts" value="balanced, slightly soft" placeholder="Select or type..."><datalist id="rcOpts"><option value="balanced, slightly soft"><option value="high contrast"><option value="low contrast"></datalist></div>
+                                <div class="form-group"><label>Saturation</label><input type="text" id="renderSaturation" list="satOpts" value="natural tropical tones" placeholder="Select or type..."><datalist id="satOpts"><option value="natural tropical tones"><option value="vibrant saturated colors"><option value="muted desaturated"></datalist></div>
+                            </div>
+                            <div class="sub-section"><h5><i class="fas fa-sliders-h"></i> Post Processing</h5>
+                                <div class="form-group"><label>Tone Mapping</label><input type="text" id="toneMapping" value="filmic realistic" placeholder="filmic realistic"></div>
+                                <div class="form-group"><label>Color Grading</label><input type="text" id="colorGrading" value="slightly warm highlights, neutral shadows" placeholder="slightly warm highlights..."></div>
+                                <div class="form-group"><label>Bloom</label><input type="text" id="bloom" list="blOpts" value="very subtle" placeholder="Select or type..."><datalist id="blOpts"><option value="very subtle"><option value="none"><option value="moderate"><option value="strong"></datalist></div>
+                                <div class="form-group"><label>Vignette</label><input type="text" id="vignette" list="vigOpts" value="minimal" placeholder="Select or type..."><datalist id="vigOpts"><option value="minimal"><option value="none"><option value="moderate"><option value="heavy"></datalist></div>
+                            </div>
+                            <div class="sub-section"><h5><i class="fas fa-cloud-sun"></i> Mood</h5>
+                                <div class="form-group"><label>Feeling</label><input type="text" id="moodFeeling" value="warm, natural, everyday residential life" placeholder="warm, natural..."></div>
+                                <div class="form-group"><label>Ambience</label><input type="text" id="moodAmbience" value="calm suburban tropical environment" placeholder="calm suburban tropical..."></div>
+                                <div class="form-group"><label>Temperature Feel</label><input type="text" id="moodTemp" value="warm and slightly humid" placeholder="warm and slightly humid"></div>
+                            </div>
+                        </div></div>
+                    </div>
+
+                    <div class="accordion">
+                        <div class="accordion-header" onclick="toggleAccordion(this)"><h4><i class="fas fa-lock"></i> Constraints & AI Behavior</h4><i class="fas fa-chevron-down chevron"></i></div>
+                        <div class="accordion-content"><div class="accordion-body">
+                            <div class="sub-section" style="margin-top:0;padding-top:0;border-top:none;"><h5><i class="fas fa-shield-alt"></i> Constraints</h5>
+                                <div class="form-group"><label>Exact Geometry</label><input type="text" id="constraintExactGeometry" list="ynOpts" value="true" placeholder="Select or type..."><datalist id="ynOpts"><option value="true"><option value="false"></datalist></div>
+                                <div class="form-group"><label>Locked Camera</label><input type="text" id="constraintLockedCamera" list="yn2Opts" value="true" placeholder="Select or type..."><datalist id="yn2Opts"><option value="true"><option value="false"></datalist></div>
+                                <div class="form-group"><label>No Redesign</label><input type="text" id="constraintNoRedesign" list="yn3Opts" value="true" placeholder="Select or type..."><datalist id="yn3Opts"><option value="true"><option value="false"></datalist></div>
+                                <div class="form-group"><label>Match Sketch Exactly</label><input type="text" id="constraintMatchSketch" list="yn4Opts" value="true" placeholder="Select or type..."><datalist id="yn4Opts"><option value="true"><option value="false"></datalist></div>
+                            </div>
+                            <div class="sub-section"><h5><i class="fas fa-robot"></i> AI Behavior</h5>
+                                <div class="form-group"><label>Instruction</label><textarea id="aiInstruction" placeholder="use input image as strict reference...">use input image as strict geometry and camera reference, only enhance materials, lighting, and environment</textarea></div>
+                                <div class="form-group"><label>Geometry Interpretation</label><input type="text" id="aiGeometryInterpretation" list="giOpts" value="false" placeholder="Select or type..."><datalist id="giOpts"><option value="false"><option value="true"></datalist></div>
+                                <div class="form-group"><label>Creativity Level</label><input type="text" id="aiCreativity" list="clOpts" value="low" placeholder="Select or type..."><datalist id="clOpts"><option value="low"><option value="medium"><option value="high"></datalist></div>
+                                <div class="form-group"><label>Environment Blend</label><input type="text" id="aiEnvironmentBlend" list="ebOpts" value="medium" placeholder="Select or type..."><datalist id="ebOpts"><option value="medium"><option value="low"><option value="high"></datalist></div>
+                                <div class="form-group"><label>Realism Priority</label><input type="text" id="aiRealismPriority" list="rpOpts" value="very high" placeholder="Select or type..."><datalist id="rpOpts"><option value="very high"><option value="high"><option value="medium"></datalist></div>
+                            </div>
+                        </div></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Right Panel: JSON Output -->
+            <div class="card json-card">
+                <div class="card-header"><h3><i class="fas fa-code"></i> JSON Output</h3><span style="color: var(--text-secondary); font-size: 0.85rem;">RenderScript AI Format</span></div>
+                <div class="card-body">
+                    <div class="output-area">
+                        <div class="output-header">
+                            <i class="fas fa-file-code" style="color: var(--accent);"></i>
+                            <span style="color: var(--text-secondary); font-size: 0.9rem; font-weight: bold;">Generated Prompt</span>
+                        </div>
+                        <textarea id="jsonOutput" placeholder='Click "Generate Prompt" to create your AI prompt...' readonly></textarea>
+                    </div>
+                    <div class="btn-group">
+                        <button id="generateJson" class="btn btn-primary"><i class="fas fa-magic"></i> Generate Prompt</button>
+                        <button id="copyJson" class="btn btn-success"><i class="fas fa-copy"></i> Copy</button>
+                        <button id="downloadJson" class="btn btn-info"><i class="fas fa-download"></i> Download</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="toast" class="toast"><i class="fas fa-check-circle"></i><span id="toastMessage">JSON copied to clipboard!</span></div>
+    <div id="notification" class="notification"><span class="close-btn" onclick="this.parentElement.classList.remove('show')">&times;</span><div id="notificationMessage"></div></div>
+    
+    <div class="footer">&copy; 2026 Copyright by Ganbay Studio</div>
+    
+    <script>
+        function toggleAccordion(header) {
+            const accordion = header.parentElement;
+            const isActive = accordion.classList.contains('active');
+            document.querySelectorAll('.accordion').forEach(a => a.classList.remove('active'));
+            if (!isActive) accordion.classList.add('active');
+        }
+
+        function resetForm() {
+            const defaults = {
+                sceneType: "modern tropical residential house exterior", functionSelect: "private urban house",
+                timeOfDay: "late morning to noon", weather: "bright tropical clear sky with light clouds",
+                lightingType: "natural daylight", naturalLightSource: "sunlight from sky",
+                naturalLightIntensity: "bright tropical sunlight",
+                naturalLightDirection: "angled directional light depending on camera view (consistent across all views)",
+                colorTemperature: "5500K - 6000K neutral daylight",
+                lightEffect: "soft but defined shadows, realistic highlights, balanced exposure",
+                artificialLightType: "minimal or none (daytime condition)", artificialLightTemp: "neutral",
+                artificialLightIntensity: "very subtle interior fill if visible",
+                globalIllumination: "enabled, realistic bounce light from ground and walls",
+                shadowQuality: "soft tropical shadows, slightly diffused edges",
+                environmentType: "indonesian suburban neighborhood",
+                environmentDetails: "banana trees, coconut trees, dense tropical plants, small neighboring houses with simple architecture, uneven dirt or semi-paved road",
+                atmosphere: "warm humid tropical air, slightly hazy distance",
+                visibility: "clear foreground, slightly softened background",
+                style: "modern minimalist box house", floors: "3",
+                colorPalette: "grey cement, dark wood, black metal, glass transparency",
+                materialsMainWall: "rough cement plaster, slightly imperfect",
+                materialsAccent: "dark wood panels and soffit",
+                materialsRailing: "vertical black metal bars, matte finish",
+                materialsGate: "dark grey metal vertical gate",
+                materialsGlass: "clear glass with mild reflection and slight interior visibility",
+                materialsRoof: "flat roof with pergola structure",
+                detailsSecondarySkin: "vertical slatted facade elements",
+                detailsBalcony: "minimal railing with clean geometry",
+                detailsImperfections: "subtle dirt, weathering, edge wear for realism",
+                humanPresence: "true", humanDensity: "very low",
+                humanActivity: "walking near house, standing casually, motorbike passing or parked",
+                humanEthnicity: "Indonesian / Southeast Asian", humanAge: "young adults to middle-aged",
+                humanClothing: "casual daily wear (t-shirt, jeans, light clothing)",
+                humanExpression: "neutral, natural",
+                envRoad: "dry soil road or lightly damaged asphalt, uneven surface",
+                envGround: "mix of dirt, grass patches, and small stones",
+                envProps: "electrical poles and cables, small fences, neighboring house elements",
+                envCleanliness: "natural, slightly messy typical residential area",
+                cameraPosition: "match exact original SketchUp camera position",
+                perspective: "two-point perspective (slight)",
+                symmetry: "depends on original view (front symmetrical, side asymmetrical)",
+                leadingLines: "building edges and fence lines",
+                depth: "foreground (road), midground (house), background (vegetation and neighboring houses)",
+                cameraType: "full-frame DSLR or mirrorless", lens: "24mm - 35mm architectural lens",
+                aperture: "f/8 - f/11", iso: "100", shutterSpeed: "1/125 - 1/250",
+                whiteBalance: "daylight neutral", focus: "deep focus, all elements sharp",
+                dynamicRange: "high, natural HDR balance", renderQuality: "ultra photorealistic",
+                renderSharpness: "high", renderContrast: "balanced, slightly soft",
+                renderSaturation: "natural tropical tones", toneMapping: "filmic realistic",
+                colorGrading: "slightly warm highlights, neutral shadows", bloom: "very subtle",
+                vignette: "minimal", moodFeeling: "warm, natural, everyday residential life",
+                moodAmbience: "calm suburban tropical environment",
+                moodTemp: "warm and slightly humid", constraintExactGeometry: "true",
+                constraintLockedCamera: "true", constraintNoRedesign: "true",
+                constraintMatchSketch: "true",
+                aiInstruction: "use input image as strict geometry and camera reference, only enhance materials, lighting, and environment",
+                aiGeometryInterpretation: "false", aiCreativity: "low",
+                aiEnvironmentBlend: "medium", aiRealismPriority: "very high"
+            };
+            Object.keys(defaults).forEach(k => { const el = document.getElementById(k); if (el) el.value = defaults[k]; });
+            document.getElementById('jsonOutput').value = '';
+            showToast('Form reset successfully!');
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMessage').textContent = msg;
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            const messageElement = document.getElementById('notificationMessage');
+            messageElement.textContent = message;
+            notification.className = 'notification ' + type + ' show';
+            setTimeout(() => { notification.classList.remove('show'); }, 3000);
+        }
+
+        function getVal(id) { const el = document.getElementById(id); return el ? el.value : ''; }
+        function getBoolVal(id) { return document.getElementById(id).value === 'true'; }
+        function parseArray(val) { return val ? val.split(',').map(i => i.trim()).filter(i => i) : []; }
+
+        function generateJSON() {
+            const prompt = {
+                "scene_type": getVal('sceneType'), "function": getVal('functionSelect'),
+                "time_of_day": getVal('timeOfDay'), "weather": getVal('weather'),
+                "lighting": {
+                    "type": getVal('lightingType'),
+                    "natural_light": {
+                        "source": getVal('naturalLightSource'), "intensity": getVal('naturalLightIntensity'),
+                        "direction": getVal('naturalLightDirection'), "color_temperature": getVal('colorTemperature'),
+                        "effect": getVal('lightEffect')
+                    },
+                    "artificial_light": {
+                        "type": getVal('artificialLightType'), "color_temperature": getVal('artificialLightTemp'),
+                        "intensity": getVal('artificialLightIntensity'),
+                        "placement": "inside building only, barely visible",
+                        "effect": "slight interior readability through glass"
+                    },
+                    "global_illumination": getVal('globalIllumination'), "shadow_quality": getVal('shadowQuality')
+                },
+                "environment_outside": {
+                    "type": getVal('environmentType'), "details": getVal('environmentDetails'),
+                    "atmosphere": getVal('atmosphere'), "visibility": getVal('visibility'),
+                    "lighting_match": "consistent with strong tropical daylight"
+                },
+                "architecture": {
+                    "style": getVal('style'), "floors": parseInt(getVal('floors')) || 3,
+                    "color_palette": parseArray(getVal('colorPalette')),
+                    "materials": {
+                        "main_wall": getVal('materialsMainWall'), "accent": getVal('materialsAccent'),
+                        "railing": getVal('materialsRailing'), "gate": getVal('materialsGate'),
+                        "glass": getVal('materialsGlass'), "roof": getVal('materialsRoof')
+                    },
+                    "details": {
+                        "secondary_skin": getVal('detailsSecondarySkin'),
+                        "balcony": getVal('detailsBalcony'), "imperfections": getVal('detailsImperfections')
+                    }
+                },
+                "human_elements": {
+                    "presence": getBoolVal('humanPresence'), "density": getVal('humanDensity'),
+                    "activity": parseArray(getVal('humanActivity')),
+                    "appearance": {
+                        "ethnicity": getVal('humanEthnicity'), "age_range": getVal('humanAge'),
+                        "clothing": getVal('humanClothing'), "expression": getVal('humanExpression')
+                    },
+                    "motion": { "some_blur": "slight motion blur for moving subjects", "others": "mostly static" }
+                },
+                "environment_details": {
+                    "road": getVal('envRoad'), "ground": getVal('envGround'),
+                    "props": parseArray(getVal('envProps')), "cleanliness": getVal('envCleanliness')
+                },
+                "composition": {
+                    "camera_position": getVal('cameraPosition'), "perspective": getVal('perspective'),
+                    "symmetry": getVal('symmetry'), "leading_lines": getVal('leadingLines'), "depth": getVal('depth')
+                },
+                "camera_settings": {
+                    "camera_type": getVal('cameraType'), "lens": getVal('lens'), "aperture": getVal('aperture'),
+                    "iso": parseInt(getVal('iso')) || 100, "shutter_speed": getVal('shutterSpeed'),
+                    "white_balance": getVal('whiteBalance'), "focus": getVal('focus'),
+                    "dynamic_range": getVal('dynamicRange')
+                },
+                "render_style": {
+                    "quality": getVal('renderQuality'), "sharpness": getVal('renderSharpness'),
+                    "contrast": getVal('renderContrast'), "saturation": getVal('renderSaturation'),
+                    "post_processing": {
+                        "tone_mapping": getVal('toneMapping'), "color_grading": getVal('colorGrading'),
+                        "bloom": getVal('bloom'), "vignette": getVal('vignette')
+                    }
+                },
+                "mood": {
+                    "feeling": getVal('moodFeeling'), "ambience": getVal('moodAmbience'),
+                    "temperature_feel": getVal('moodTemp')
+                },
+                "constraints": {
+                    "exact_geometry": getBoolVal('constraintExactGeometry'),
+                    "locked_camera": getBoolVal('constraintLockedCamera'),
+                    "no_redesign": getBoolVal('constraintNoRedesign'),
+                    "match_sketch_exactly": getBoolVal('constraintMatchSketch'),
+                    "preserve_proportions": true, "preserve_all_architecture_elements": true,
+                    "no_camera_shift": true, "no_focal_length_change": true
+                },
+                "ai_behavior": {
+                    "instruction": getVal('aiInstruction'),
+                    "geometry_interpretation": getVal('aiGeometryInterpretation') === 'true',
+                    "creativity_level": getVal('aiCreativity'),
+                    "environment_blend": getVal('aiEnvironmentBlend'),
+                    "realism_priority": getVal('aiRealismPriority')
+                }
+            };
+            
+            const jsonString = JSON.stringify(prompt, null, 2);
+            document.getElementById('jsonOutput').value = jsonString;
+            
+            const promptCount = parseInt(document.getElementById('promptCount').textContent) || 0;
+            document.getElementById('promptCount').textContent = promptCount + 1;
+            document.getElementById('charactersCount').textContent = jsonString.length;
+            document.getElementById('wordsCount').textContent = jsonString.split(/\s+/).filter(word => word.length > 0).length;
+            document.getElementById('lastGenerated').textContent = new Date().toLocaleTimeString();
+            
+            showToast('Prompt generated successfully!');
+            showNotification('Prompt generated successfully!', 'success');
+        }
+
+        function copyToClipboard() {
+            const j = document.getElementById('jsonOutput');
+            if (j.value) { j.select(); document.execCommand('copy'); showToast('JSON copied to clipboard!'); showNotification('JSON copied to clipboard!', 'success'); }
+            else { showToast('Generate a prompt first!'); showNotification('Please generate a prompt first!', 'warning'); }
+        }
+
+        function downloadJSON() {
+            const json = document.getElementById('jsonOutput').value;
+            if (json) {
+                const blob = new Blob([json], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'renderscript-prompt.json';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showToast('JSON downloaded successfully!');
+                showNotification('JSON downloaded successfully!', 'success');
+            } else {
+                showToast('Generate a prompt first!');
+                showNotification('Please generate a prompt first!', 'warning');
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('generateJson').addEventListener('click', generateJSON);
+            document.getElementById('copyJson').addEventListener('click', copyToClipboard);
+            document.getElementById('downloadJson').addEventListener('click', downloadJSON);
+            document.getElementById('promptCount').textContent = '0';
+            document.getElementById('charactersCount').textContent = '0';
+            document.getElementById('wordsCount').textContent = '0';
+            document.getElementById('lastGenerated').textContent = '-';
+        });
+    </script>
+</body>
+</html>
