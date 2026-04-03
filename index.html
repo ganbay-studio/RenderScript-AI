@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>RenderScript AI - Enhanced BETA</title>
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-KCW0ZWBRRX"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-KCW0ZWBRRX');
+    </script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -651,6 +659,15 @@
             document.getElementById('wordsCount').textContent = jsonString.split(/\s+/).filter(word => word.length > 0).length;
             document.getElementById('lastGenerated').textContent = new Date().toLocaleTimeString();
             
+            // Google Analytics - Track Generate Prompt click
+            if (typeof gtag === 'function') {
+                gtag('event', 'generate_prompt', {
+                    'event_category': 'Prompt',
+                    'event_label': 'Generate Prompt Clicked',
+                    'value': 1
+                });
+            }
+
             showToast('Prompt generated successfully!');
             showNotification('Prompt generated successfully!', 'success');
         }
